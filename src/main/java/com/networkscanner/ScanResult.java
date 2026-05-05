@@ -1,3 +1,4 @@
+package com.networkscanner;
 public class ScanResult {
     private String ipAddress;
     private int port;
