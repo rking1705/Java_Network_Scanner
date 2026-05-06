@@ -15,58 +15,134 @@ import java.util.Scanner;
 //main
 public class NetworkScanner {
     // Initialize ports and Scanner
-    private static ArrayList<Integer> ports = new ArrayList<>(Arrays.asList(21, 22, 23, 25, 53, 80, 110, 143, 443, 993, 995));
-    private static final Scanner scanner = new Scanner(System.in);
+    private static final ArrayList<Integer> DEFAULT_PORTS = new ArrayList<>(Arrays.asList(21, 22, 23, 25, 53, 80, 110, 143, 443, 993, 995));
+    private static final Scanner input = new Scanner(System.in);
 
     public static void main(String[] args) {
         //Allow for user input
+        System.out.println("============================");
         System.out.println("NETWORK SCANNER by Ryan King");
+        System.out.println("============================");
 
-        //Enter the IP address to scan
-        System.out.print("Enter the IP address to scan: ");
-        String ipAddress = scanner.nextLine();
-        if (ipAddress == null || ipAddress.trim().isEmpty()) {
-            System.err.println("Invalid IP address.");
-            return;
-        } else if (ipAddress.matches("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$")) {
-            // IP address is valid
-            ipAddress = ipAddress.trim();
-        } else {
-            System.err.println("Invalid IP address.");
-            return;
-        }
 
-        //Allow user to choose which ports to scan
-        System.out.println("View current port list: ");
-        for (int port: ports) {
-            System.out.println("Port: " + port);
-        }
-        System.out.print("Would you like to add more ports? (y/n): ");
-        String choice = scanner.nextLine();
-        if (choice.equalsIgnoreCase("y")) {
-            System.out.print("Enter the port number to add: ");
-            String portInput = scanner.nextLine();
-            try {
-                int port = Integer.parseInt(portInput);
-                ports.add(port);
-            } catch (NumberFormatException e) {
-                System.err.println("Invalid port number.");
+        ScanHistory scanHistory = new ScanHistory();
+        com.networkscanner.Scanner portScanner = new com.networkscanner.Scanner();
+
+        ArrayList<Integer> ports = new ArrayList<>(DEFAULT_PORTS);
+
+
+        boolean running = true;
+
+        while (running) {
+            System.out.println("\nMenu");
+            System.out.println(" 1. Scan an IP address");
+            System.out.println(" 2. Manage port list");
+            System.out.println(" 3. View scan history");
+            System.out.println(" 4. Exit");
+            System.out.print("Enter your choice: ");
+            String choice = input.nextLine().trim();
+
+            if (choice.equals("1")) {
+                // Scan an IP address
+                runScan(portScanner, scanHistory, ports);
+            } else if (choice.equals("2")) {
+                // Manage port list4
+                managePorts(ports);
+            } else if (choice.equals("3")) {
+                // View scan history
+                scanHistory.printHistory();
+            } else if (choice.equals("4")) {
+                // Exit
+                System.out.println("Exiting...");
+                running = false;
+            } else {
+                System.out.println("Invalid choice. Please try again.");
             }
         }
 
-        System.out.println("Scanning ports " + Arrays.toString(ports.toArray()) + " on " + ipAddress + "...");
-        ScanHistory scanHistory = new ScanHistory();
-        com.networkscanner.Scanner portScanner = new com.networkscanner.Scanner();
-        ArrayList<ScanResult> results = portScanner.scan(ipAddress, ports);
+        input.close();
+    }
+
+    private static void runScan(com.networkscanner.Scanner portScanner, ScanHistory scanHistory, ArrayList<Integer> ports) {
+        String ip = promptIP();
+        if (ip == null) return;
+
+        System.out.println("\nScanning " + ports.size() + " port(s) on " + ip + " ...");
+        ArrayList<ScanResult> results = portScanner.scan(ip, ports);
         scanHistory.addScan(results);
-        portScanner.printResults();
+        portScanner.printResults(results);
+    }
 
-        System.out.println("Press enter to view scan history...");
+    private static void managePorts(ArrayList<Integer> ports) {
+        boolean managing = true;
+        while (managing) {
+            System.out.println("\nPORT LIST: " + ports);
+            System.out.println(" 1. Add a port");
+            System.out.println(" 2. Remove a port");
+            System.out.println(" 3. Reset to default");
+            System.out.println(" 4. Back");
+            System.out.println("Enter your choice: ");
+            String choice = input.nextLine().trim();
+
+            if (choice.equals("1")) {
+                // Add a port
+                System.out.print("Enter the port number to add: ");
+                String portInput = input.nextLine();
+                try {
+                    int port = Integer.parseInt(portInput);
+                    ports.add(port);
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid port number.");
+                }
+            } else if (choice.equals("2")) {
+                // Remove a port
+                System.out.print("Enter the port number to remove: ");
+                String portInput = input.nextLine();
+                try {
+                    int port = Integer.parseInt(portInput);
+                    ports.remove(Integer.valueOf(port));
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid port number.");
+                }
+            } else if (choice.equals("3")) {
+                // Reset to default
+                ports.clear();
+                ports.addAll(DEFAULT_PORTS);
+            } else if (choice.equals("4")) {
+                // Back
+                managing = false;
+            } else {
+                System.out.println("Invalid choice. Please try again.");
+            }
+
+        }
+    }
+
+    private static String promptIP() {
+        System.out.print("\nEnter IP address to scan: ");
+        String ip = input.nextLine().trim();
+        String ipv4Pattern =
+            "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}" +
+            "(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
+        if (ip.isEmpty() || !ip.matches(ipv4Pattern)) {
+            System.err.println("Invalid IP address.");
+            return null;
+        }
+        return ip;
+    }
+
+    private static Integer parsePort(String s) {
+        try {
+            int port = Integer.parseInt(s);
+            if (port < 1 || port > 65535) throw new NumberFormatException();
+            return port;
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid port — must be a number between 1 and 65535.");
+            return null;
+        }
+    }
+}
+
         
-    scanner.nextLine(); // waits for user to press Enter
-    scanHistory.printHistory();
-        
-    
 
     
-}}

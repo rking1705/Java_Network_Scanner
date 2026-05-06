@@ -15,10 +15,19 @@ public class ScanHistory {
     }
     
     public void printHistory() {
-        for (ArrayList<ScanResult> scan : history) {
+        if (history.isEmpty()) {
+            System.out.println("  No scans recorded yet.");
+            return;
+        }
+        System.out.println("\n========== SCAN HISTORY (" + history.size() + " scan(s)) ==========");
+        for (int i = 0; i < history.size(); i++) {
+            ArrayList<ScanResult> scan = history.get(i);
+            String ip = scan.isEmpty() ? "unknown" : scan.get(0).getIpAddress();
+            System.out.println("\n  Scan #" + (i + 1) + " — " + ip);
             for (ScanResult result : scan) {
-                System.out.println(result);
+                System.out.println("    " + result);
             }
         }
+        System.out.println("====================================================");
     }
 }

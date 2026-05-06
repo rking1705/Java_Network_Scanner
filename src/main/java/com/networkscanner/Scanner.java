@@ -7,10 +7,15 @@ import java.time.LocalDateTime;
 
 public class Scanner {
 
+    private static final int TIMEOUT_MS = 500; //500ms per port
+
+
+
     // Holds all results
-    private ArrayList<ScanResult> results = new ArrayList<>();
+    
     
     public ArrayList<ScanResult> scan(String ip, ArrayList<Integer> ports) {
+        ArrayList<ScanResult> results = new ArrayList<>();
         // checks each port for services
         for (int port : ports) {
             boolean isPortOpen = checkPort(ip, port);
@@ -23,24 +28,21 @@ public class Scanner {
     }
 
     private boolean checkPort(String ip, int port) {
-        try (Socket socket = new Socket(ip, port)) {
-            if (socket.isClosed()) {
-                return false;
-            } else {
-                return true;
-        }
+        try (Socket socket = new Socket()) {
+            //Timeout prevents hanging on closed ports
+            socket.connect(new java.net.InetSocketAddress(ip, port), TIMEOUT_MS);
+            return true;
         } catch (Exception e) {
             return false;
         }
     }
 
-    public ArrayList<ScanResult> getResults() {
-        return results;
-    }
     
-    public void printResults() {
-        for (ScanResult result : results) {
-            System.out.println(result);
-        }
+    public void printResults(ArrayList<ScanResult> results) {
+        long openCount = results.stream().filter(ScanResult::isPortOpen).count();
+        System.out.println("\n--- Scan Results (" + openCount + " open / " + results.size() + " scanned) ---");
+        results.stream().filter(ScanResult::isPortOpen).forEach(r -> System.out.println(" " + r));
+        results.stream().filter(r -> !r.isPortOpen()).forEach(r -> System.out.println(" " + r));
+        System.out.println("------------------------------------");
     }
 }
